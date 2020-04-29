@@ -1,0 +1,1 @@
+enum OptionState { FRESH, SELECTED, CORRECT, WRONG, FINISHED }
