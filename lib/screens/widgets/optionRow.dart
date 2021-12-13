@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:project_alsy/models/option.dart';
+import 'package:cbap_prep_app/models/option.dart';
 
 class OptionRow extends StatelessWidget {
   OptionRow({Key key,
@@ -26,7 +26,8 @@ class OptionRow extends StatelessWidget {
               width: 35,
               height: 35,
               decoration: BoxDecoration(
-                color: Colors.purple[900],
+//                color: Colors.purple[900],
+              color: Theme.of(context).primaryColorDark,
                 shape: BoxShape.circle,
               ),
               child: Center(

@@ -1,4 +1,4 @@
-import 'package:project_alsy/services/dbReference.dart';
+import 'package:cbap_prep_app/services/dbReference.dart';
 
 class Option {
   int id;

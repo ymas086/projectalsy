@@ -1,28 +1,35 @@
 import 'dart:async';
 
 import 'package:async/async.dart';
+import 'package:cbap_prep_app/services/dbReference.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rounded_progress_bar/flutter_rounded_progress_bar.dart';
 import 'package:flutter_rounded_progress_bar/rounded_progress_bar_style.dart';
 import 'package:loading/indicator/ball_grid_pulse_indicator.dart';
 import 'package:loading/loading.dart';
-import 'package:project_alsy/screens/widgets/questionView.dart';
-import 'package:project_alsy/services/dbhelper.dart';
-import 'package:project_alsy/models/question.dart';
+import 'package:cbap_prep_app/screens/widgets/questionView.dart';
+import 'package:cbap_prep_app/services/dbhelper.dart';
+import 'package:cbap_prep_app/models/question.dart';
 
 import 'widgets/optionState.dart';
 
 class QuestionPage extends StatefulWidget {
-  QuestionPage({Key key, this.title, this.numQuestions}) : super(key: key);
+  QuestionPage(
+      {Key key, this.title, this.startIndex, this.numQuestions, this.testType})
+      : super(key: key);
 
   final String title;
+  final int startIndex;
   final int numQuestions;
+  final TestType testType;
 
   @override
   _QuestionPageState createState() => _QuestionPageState();
 }
 
 class _QuestionPageState extends State<QuestionPage> {
+  //TODO need to pass start and end timestamp to results page
+  //TODO consider just passing the Results object to the results page. Might be cleaner.
   static final DatabaseHelper db = DatabaseHelper.instance;
   Future<List<Question>> questionQuery;
   AsyncMemoizer questionQueryMemoizer;
@@ -31,6 +38,7 @@ class _QuestionPageState extends State<QuestionPage> {
   int currentQuestionIndex;
   int selectedOptionIndex;
   int numCorrect;
+  int startTime = DateTime.now().microsecondsSinceEpoch;
 
   //called when state is being created
   @override
@@ -38,14 +46,27 @@ class _QuestionPageState extends State<QuestionPage> {
     super.initState();
 
     //main task is to create the list of questions
-    questionQueryMemoizer = AsyncMemoizer<List<Question>>();
-    questionQuery = questionQueryMemoizer.runOnce(() {
-      db.queryQuestionSetFull(widget.numQuestions).then((data) {
-        setState(() {
-          this.questions = data;
+    if (widget.testType == TestType.Random) {
+      questionQueryMemoizer = AsyncMemoizer<List<Question>>();
+      questionQuery = questionQueryMemoizer.runOnce(() {
+        db.queryRandomQuestions(widget.numQuestions).then((data) {
+          setState(() {
+            this.questions = data;
+          });
         });
       });
-    });
+    } else if (widget.testType == TestType.Custom) {
+      questionQueryMemoizer = AsyncMemoizer<List<Question>>();
+      questionQuery = questionQueryMemoizer.runOnce(() {
+        db
+            .queryQuestionRange(widget.startIndex, widget.numQuestions)
+            .then((data) {
+          setState(() {
+            this.questions = data;
+          });
+        });
+      });
+    }
     questionAnswerState = OptionState.FRESH;
     currentQuestionIndex = 0;
     selectedOptionIndex = 0;
@@ -68,7 +89,8 @@ class _QuestionPageState extends State<QuestionPage> {
       //check if current selection = correct answer
       if (questions[currentQuestionIndex]
               .options[selectedOptionIndex]
-              .isAnswer ==
+              .isAnswer
+              .toLowerCase() ==
           "true") {
         questionAnswerState = OptionState.CORRECT;
         numCorrect++;
@@ -86,24 +108,15 @@ class _QuestionPageState extends State<QuestionPage> {
         questionAnswerState = OptionState.FRESH;
       } else {
         Navigator.pushNamed(context, '/results',
-            arguments: [numCorrect, questions.length]);
+            arguments: [numCorrect, questions.length, widget.testType]);
         setState(() {
           questionAnswerState = OptionState.FINISHED;
         });
-//        Scaffold.of(context).showSnackBar(SnackBar(
-//          content: Text('Last question reached, unable to proceed'),
-//        ));
       }
     });
   }
 
   void onFloatingActionButtonPress() {
-    //DEBUG
-//          print("current score = $numCorrect");
-    print("current Question: $currentQuestionIndex");
-    print("question count: ${questions.length}");
-    print("percentage: ${currentQuestionIndex / questions.length}");
-
     //works based on the current state of the widget
 //    if (currentQuestionIndex == (questions.length - 1)) {
     if (questionAnswerState == OptionState.FINISHED) {
@@ -113,14 +126,17 @@ class _QuestionPageState extends State<QuestionPage> {
 
       //confirm that the test is concluded
       Navigator.pushNamed(context, '/results',
-          arguments: [numCorrect, questions.length]);
+          arguments: [numCorrect, questions.length, widget.testType]);
     } else {
       //we are still within the test, determine action based on current state
       if (questionAnswerState == OptionState.FRESH) {
         //nothing selected, return an error
-        Scaffold.of(context).showSnackBar(SnackBar(
-          content: Text("Please select an answer"),
-        ));
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text("Please select an answer")));
+
+//        Scaffold.of(context).showSnackBar(SnackBar(
+//          content: Text("Please select an answer"),
+//        ));
       } else if (questionAnswerState == OptionState.SELECTED) {
         //something has been selected. determine if correct or wrong
         updateAnswerState();
@@ -157,14 +173,11 @@ class _QuestionPageState extends State<QuestionPage> {
                   RoundedProgressBar(
                     childLeft: Icon(
                       Icons.assessment,
-                      color: Colors.purple[100],
+                      color: Colors.cyan[100],
                       size: 25,
                     ),
                     childRight: Text(
                       '${currentQuestionIndex + 1} of ${questions.length}',
-                      style: TextStyle(
-                        color: Colors.white,
-                      ),
                     ),
                     paddingChildLeft: EdgeInsets.fromLTRB(5, 0, 0, 0),
                     paddingChildRight: EdgeInsets.fromLTRB(0, 0, 5, 0),
@@ -172,13 +185,9 @@ class _QuestionPageState extends State<QuestionPage> {
                         ((currentQuestionIndex + 1) * 100 / questions.length),
                     borderRadius: BorderRadius.circular(30),
                     style: RoundedProgressBarStyle(
-                        backgroundProgress: Colors.lightGreen[300],
-                        colorProgress: Colors.purple[500],
-                        borderWidth: 2,
-                        widthShadow: 10,
-                        colorBackgroundIcon: Colors.red[500],
-                        colorProgressDark: Colors.purple[700],
-                        colorBorder: Colors.grey[500]),
+                      borderWidth: 2,
+                      widthShadow: 10,
+                    ),
                     height: 30,
                   ),
                   QuestionView(
@@ -197,7 +206,7 @@ class _QuestionPageState extends State<QuestionPage> {
                 child: Loading(
                   indicator: BallGridPulseIndicator(),
                   size: 100.0,
-                  color: Colors.purple[500],
+                  color: Theme.of(context).primaryColor,
                 ),
               );
             }

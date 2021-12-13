@@ -1,21 +1,26 @@
 import 'package:flutter/material.dart';
-import 'package:project_alsy/routes.dart';
+import 'package:cbap_prep_app/routes.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() => runApp(MyApp());
 
 class MyApp extends StatelessWidget {
   // This widget is the root of your application.
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'CISA Prep App',
+      title: 'CBAP Prep App',
       initialRoute: homeRoute,
-      onGenerateRoute: Router.generateRoute,
+      onGenerateRoute: MyRouter.generateRoute,
       theme: ThemeData(
         // This is the theme of your application.
-        primarySwatch: Colors.purple,
-        accentColor: Colors.lightGreen,
-
+        primaryColor: Colors.cyan,
+        colorScheme: ColorScheme.fromSwatch(
+          primarySwatch: Colors.cyan,
+          accentColor: Colors.redAccent,
+//          primaryColorDark: Color(0x008ba3),
+        ),
       ),
     );
   }

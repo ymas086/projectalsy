@@ -1,9 +1,11 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'package:cbap_prep_app/models/result.dart';
 import 'package:path/path.dart';
-import 'package:project_alsy/models/option.dart';
-import 'package:project_alsy/models/question.dart';
+import 'package:cbap_prep_app/models/option.dart';
+import 'package:cbap_prep_app/models/question.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqflite/sqflite.dart';
 import 'dart:typed_data';
 import 'package:flutter/services.dart';
@@ -16,14 +18,29 @@ class DatabaseHelper {
 
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
 
-  // only have a single app-wide reference to the database
-  static Database _database;
+  // only have a single app-wide reference to the databases
+  //TODO refactor this class to factor in writes to questionDB to store results.
 
-  Future<Database> get database async {
-    if (_database != null) return _database;
+  static Database _questionDatabase;
+  static Database _controlDatabase;
+  static SharedPreferences sharedPref;
+
+  Future<Database> get questionDatabase async {
+    //TODO setup the sharedPreferences here...for the first time
+//    sharedPref = await SharedPreferences.getInstance();
+//
+//    if (sharedPref.getKeys().isEmpty) {
+//      //no keys exist, so save CBAP question bank as default
+//      sharedPref.setString("question_bank", "CBAP");
+//      sharedPref.setString("database_name", "cbap2.sqlite");
+//      sharedPref.setInt("question_count", 150);
+//      sharedPref.setStringList("question_bank_list", questionBanksList);
+//    }
+
+    if (_questionDatabase != null) return _questionDatabase;
     // lazily instantiate the db the first time it is accessed
-    _database = await _initDatabase();
-    return _database;
+    _questionDatabase = await _initDatabase();
+    return _questionDatabase;
   }
 
   // this opens the database (and creates it if it doesn't exist)
@@ -50,17 +67,17 @@ class DatabaseHelper {
 
       // Write and flush the bytes written
       await File(path).writeAsBytes(bytes, flush: true);
-    } else {
-      print("Opening existing database");
     }
+
 // open the database
+    print("path: $path");
     return await openDatabase(path);
   }
 
   // Helper methods
 
   Future<Question> querySingleQuestionFull() async {
-    Database db = await instance.database;
+    Database db = await instance.questionDatabase;
     Question q;
     List<Map> maps = await db.query(
       questionsTable,
@@ -105,14 +122,14 @@ class DatabaseHelper {
     return q;
   }
 
-  Future<List<Question>> queryQuestionSetFull(int numQuestions) async {
-    Database db = await instance.database;
-    List<Question> results = new List<Question>();
+  Future<List<Question>> queryRandomQuestions(int numQuestions) async {
+    Database db = await instance.questionDatabase;
+    List<Question> results = List<Question>.empty(growable: true);
     List<int> questionIds = generateRandomQuestionIds(numQuestions);
     Question q;
 
-    List<Map> maps = await db.rawQuery(
-        "select * from $questionsTable where $columnQuestionId in "
+    List<Map> maps = await db
+        .rawQuery("select * from $questionsTable where $columnQuestionId in "
             "${mergeQueryIdsInt(questionIds)} order by $columnQuestionId asc");
 
     //create the result set with questions
@@ -126,8 +143,8 @@ class DatabaseHelper {
     }
     print("Questions query concluded");
 
-    List<Map> optionMaps = await db.rawQuery(
-        "select * from $optionsTable where $columnQuestionId in "
+    List<Map> optionMaps = await db
+        .rawQuery("select * from $optionsTable where $columnQuestionId in "
             "${mergeQueryIdsInt(questionIds)} order by $columnQuestionId asc");
     print("Options query concluded");
 
@@ -136,20 +153,95 @@ class DatabaseHelper {
         results[i ~/ 4].options.add(Option.fromMap(optionMaps[i]));
       }
     }
+
+    print("Results length:" + results.length.toString());
     return results;
   }
 
+  Future<List<Question>> queryQuestionRange(
+      int startIndex, int numQuestions) async {
+    Database db = await instance.questionDatabase;
+    List<Question> results = List<Question>.empty(growable: true);
+    List<int> questionIds =
+        new List<int>.generate(numQuestions, (i) => i + startIndex);
+    Question q;
+
+    List<Map> maps = await db
+        .rawQuery("select * from $questionsTable where $columnQuestionId in "
+            "${mergeQueryIdsInt(questionIds)} order by $columnQuestionId asc");
+
+    //create the result set with questions
+    if (maps.length > 0) {
+      for (Map m in maps) {
+        q = Question.fromMap(m);
+
+        print(m[columnQuestionId]);
+        results.add(q);
+      }
+    }
+    print("Questions query concluded");
+
+    List<Map> optionMaps = await db
+        .rawQuery("select * from $optionsTable where $columnQuestionId in "
+            "${mergeQueryIdsInt(questionIds)} order by $columnQuestionId asc");
+    print("Options query concluded");
+
+    if (optionMaps.length > 0) {
+      for (int i = 0; i < optionMaps.length; i++) {
+        results[i ~/ 4].options.add(Option.fromMap(optionMaps[i]));
+      }
+    }
+
+    print("Results length:" + results.length.toString());
+    return results;
+  }
+
+  void saveTestResult(Result result) async {
+    Database db = await instance.questionDatabase;
+    //TODO insert create if not exists query for the results table
+    await db.rawQuery("create table if not exists results "
+        "(columnResultId int, columnStartDate int, columnEndDate int, columnTestType text,"
+        "columnQuestionRange text, columnTotalQuestionCount, int, columnTotalCorrect int)");
+//    const String columnResultId = "resultId";
+//    const String columnStartDate = "startDate";
+//    const String columnEndDate = "endDate";
+//    const String columnTestType = "testType";
+//    const String columnQuestionRange = "questionRange";
+//    const String columnTotalQuestionCount = "totalQuestionCount";
+//    const String columnTotalCorrect = "totalCorrect";
+    //TODO write the results
+
+//    List<Map> maps = await db
+//        .rawQuery("select * from $questionsTable where $columnQuestionId in "
+//        "${mergeQueryIdsInt(questionIds)} order by $columnQuestionId asc");
+
+    //create the result set with questions
+  }
+
+  void writeDatabasePreferences(String questionBank) {
+    switch (questionBank) {
+      case "CBAP":
+      //do something
+      case "CISA":
+      //do something else
+      default:
+    }
+  }
+
+  //for generating an array of random numbers capped at the number of questions in the question bank
   List<int> generateRandomQuestionIds(int number) {
     Random rand = new Random();
     Set<int> set = new Set<int>(); //sets maintain uniqueness of elements
     while (set.length < number) {
       //continuously generate random numbers, exit once the length = desired number
-      set.add(rand.nextInt(1150));
+      //This number needs to be manually edited because it must be pegged to the total number of questions to be expected in the question bank
+      set.add(rand.nextInt(numQuestionsInBank));
       print(set.last);
     }
     return set.toList();
   }
 
+  //For creating a string of indices for the sql query
   String mergeQueryIdsInt(List<int> queryIds) {
     StringBuffer ids = new StringBuffer("(");
     for (int i = 0; i < queryIds.length; i++) {

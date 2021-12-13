@@ -1,25 +1,23 @@
-import 'package:project_alsy/services/dbReference.dart';
+import 'package:cbap_prep_app/services/dbReference.dart';
 
 import 'option.dart';
+import 'image.dart';
 
 class Question {
   int id;
-//  String id;
+
   String text;
   String explanation;
-//  String number;
+
   int number;
   int optionIsAnswer;
-//  String optionIsAnswer;
+
   int optionId1;
-//  String optionId1;
   int optionId2;
-//  String optionId2;
   int optionId3;
-//  String optionId3;
   int optionId4;
-//  String optionId4;
   List<Option> options;
+  List<Image> images;
 
   Question();
 
@@ -44,10 +42,7 @@ class Question {
     optionId2 = map[columnOption2];
     optionId3 = map[columnOption3];
     optionId4 = map[columnOption4];
-    options = new List<Option>();
+    options = List<Option>.empty(growable: true);
+//    images = List<Image>.empty(growable: true);
   }
-
-//  List<String> getOptionIds(){
-//    return [optionId1, optionId2, optionId3, optionId4];
-//  }
 }

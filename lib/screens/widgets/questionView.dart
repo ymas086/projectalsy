@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:project_alsy/models/question.dart';
+import 'package:cbap_prep_app/models/question.dart';
 
 import 'optionGrid.dart';
 import 'optionState.dart';
