@@ -36,6 +36,7 @@ dependencies:
   cupertino_icons: ^0.1.2
   easy_image_viewer: ^1.0.3
   accordion: ^2.1.2
+  d_chart: ^0.0.3
 
 dev_dependencies:
   flutter_test:

@@ -139,24 +139,28 @@ class DatabaseHelper {
       }
 
       //Populate images array
-      List<Map> mapsImages = await db.query(
-        imagesTable,
-        columns: [
-          columnImageId,
-          columnQuestionId,
-          columnSequence,
-          columnImageTitle,
-          columnImageRaw
-        ],
-        where: "$columnQuestionId = ?",
-        whereArgs: [q.id],
-        limit: 4,
-      );
+      try {
+        List<Map> mapsImages = await db.query(
+          imagesTable,
+          columns: [
+            columnImageId,
+            columnQuestionId,
+            columnSequence,
+            columnImageTitle,
+            columnImageRaw
+          ],
+          where: "$columnQuestionId = ?",
+          whereArgs: [q.id],
+          limit: 4,
+        );
 
-      if (mapsImages.length > 0) {
-        for (Map m in mapsImages) {
-          q.images.add(Image.fromMap(m));
+        if (mapsImages.length > 0) {
+          for (Map m in mapsImages) {
+            q.images.add(Image.fromMap(m));
+          }
         }
+      } on Exception catch (exception) {
+        print("Database does not contain images table");
       }
     }
     return q;
@@ -194,17 +198,21 @@ class DatabaseHelper {
       }
     }
 
-    List<Map> imageMaps = await db
-        .rawQuery("select * from $imagesTable where $columnQuestionId in "
-            "${mergeQueryIdsInt(questionIds)} order by $columnQuestionId asc");
-    print("images query concluded");
+    try {
+      List<Map> imageMaps = await db.rawQuery(
+          "select * from $imagesTable where $columnQuestionId in "
+          "${mergeQueryIdsInt(questionIds)} order by $columnQuestionId asc");
+      print("images query concluded");
 
-    if (imageMaps.length > 0) {
-      for (int i = 0; i < imageMaps.length; i++) {
-        results[questionIds.indexOf(imageMaps[i][columnQuestionId])]
-            .images
-            .add(Image.fromMap(imageMaps[i]));
+      if (imageMaps.length > 0) {
+        for (int i = 0; i < imageMaps.length; i++) {
+          results[questionIds.indexOf(imageMaps[i][columnQuestionId])]
+              .images
+              .add(Image.fromMap(imageMaps[i]));
+        }
       }
+    } on Exception catch (e) {
+      print("Database does not contain images table");
     }
 
     print("Results length:" + results.length.toString());
@@ -245,17 +253,21 @@ class DatabaseHelper {
       }
     }
 
-    List<Map> imageMaps = await db
-        .rawQuery("select * from $imagesTable where $columnQuestionId in "
-            "${mergeQueryIdsInt(questionIds)} order by $columnQuestionId asc");
-    print("images query concluded");
+    try {
+      List<Map> imageMaps = await db.rawQuery(
+          "select * from $imagesTable where $columnQuestionId in "
+          "${mergeQueryIdsInt(questionIds)} order by $columnQuestionId asc");
+      print("images query concluded");
 
-    if (imageMaps.length > 0) {
-      for (int i = 0; i < imageMaps.length; i++) {
-        results[questionIds.indexOf(imageMaps[i][columnQuestionId])]
-            .images
-            .add(Image.fromMap(imageMaps[i]));
+      if (imageMaps.length > 0) {
+        for (int i = 0; i < imageMaps.length; i++) {
+          results[questionIds.indexOf(imageMaps[i][columnQuestionId])]
+              .images
+              .add(Image.fromMap(imageMaps[i]));
+        }
       }
+    } on Exception catch (e) {
+      print("Database does not contain an images table");
     }
 
     print("Results length:" + results.length.toString());
@@ -274,14 +286,25 @@ class DatabaseHelper {
     viewTestResult();
   }
 
-  void viewTestResult() async {
+  Future<List<QuizResult>> viewTestResult() async {
     //TODO tailor this to be usable in results history screen
     Database db = await instance.questionDatabase;
+    List<QuizResult> results = List<QuizResult>.empty(growable: true);
 
-    List<Map> maps = await db.rawQuery("select * from $resultsTable "
-        "order by $columnResultId asc");
+    try {
+      List<Map> resultsMap = await db.rawQuery("select * from $resultsTable "
+          "order by $columnResultId asc");
 
-    print("number of results: ${maps.length}");
+      print("number of results: ${resultsMap.length}");
+
+      if (resultsMap.length > 0) {
+        for (Map m in resultsMap) results.add(QuizResult.fromMap(m));
+      }
+    } on Exception catch (e) {
+      print("Database for results does not exist");
+    }
+
+    return results;
   }
 
   void updateSelectedQuestionBank(QuestionBank bank) async {
@@ -294,7 +317,7 @@ class DatabaseHelper {
     databaseName = bank.dbName;
     numQuestionsInBank = bank.numQuestions;
 
-    await _initDatabase();
+    _questionDatabase = await _initDatabase();
   }
 
   //for generating an array of random numbers capped at the number of questions in the question bank

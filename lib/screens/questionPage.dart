@@ -39,8 +39,6 @@ class _QuestionPageState extends State<QuestionPage> {
 
   QuizResult currentSessionResult;
 
-  int startTime = DateTime.now().microsecondsSinceEpoch;
-
   //called when state is being created
   @override
   void initState() {

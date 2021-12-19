@@ -1,6 +1,7 @@
 //import 'dart:html';
 import 'dart:ui';
 
+import 'package:async/async.dart';
 import 'package:cbap_prep_app/models/questionBank.dart';
 import 'package:cbap_prep_app/services/dbhelper.dart';
 import 'package:custom_clippers/Clippers/sin_cosine_wave_clipper.dart';
@@ -30,14 +31,22 @@ class _MyHomePageState extends State<MyHomePage> {
   int questionCount = 1;
   int startIndex = 1;
 
-  String selectedDb = "CBAP";
+  String selectedDb;
 
   @override
   void initState() {
     super.initState();
 
     //main task is to initiate the SharedPreferences data
-    db.sharedPref;
+//    db.sharedPref;
+
+    AsyncMemoizer<void>().runOnce(() {
+      db.sharedPref.then((data) {
+        setState(() {
+          selectedDb = db.databaseName;
+        });
+      });
+    });
   }
 
   @override
@@ -91,7 +100,6 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             TextButton(
               onPressed: () async {
-//                int questionCount = int.parse(questionCountController.text);
                 Navigator.pop(context, 'Start');
 //                await Navigator.pop(context, 'Start');
                 Navigator.pushNamed(context, questionsRoute, arguments: [
@@ -114,8 +122,6 @@ class _MyHomePageState extends State<MyHomePage> {
         style: TextStyle(color: Theme.of(context).primaryColor),
       ),
       style: ButtonStyle(
-//        side: MaterialStateProperty.all<BorderSide>(
-//            BorderSide(color: Theme.of(context).primaryColor)),
         backgroundColor: MaterialStateProperty.all(Colors.white),
         elevation: MaterialStateProperty.all(1),
       ),
@@ -128,7 +134,6 @@ class _MyHomePageState extends State<MyHomePage> {
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.start,
-//                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     "Question number to start from:",
@@ -169,7 +174,7 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
             TextButton(
               onPressed: () async {
-                Navigator.pop(context, 'Start');
+                 Navigator.pop(context, 'Start');
 //                await Navigator.pop(context, 'Start');
                 Navigator.pushNamed(context, questionsRoute, arguments: [
                   'Question Page',
@@ -204,12 +209,11 @@ class _MyHomePageState extends State<MyHomePage> {
                     style: Theme.of(context).textTheme.caption,
                     textAlign: TextAlign.left,
                   ),
-                  //TODO this dropdownbutton appears too finicky. Consider alternatives
+                  //TODO selectedDb always appears blank. Consider investigating why
                   DropdownButton(
                     value: selectedDb,
                     items: questionBanksList2
                         .map<DropdownMenuItem<String>>((index) {
-                      print(index.dbName);
                       return DropdownMenuItem<String>(
                         child: Text(index.identifier),
                         value: index.dbName,
@@ -340,6 +344,7 @@ class _MyHomePageState extends State<MyHomePage> {
                           elevation: MaterialStateProperty.all(1)),
                       onPressed: () {
                         //TODO launch a new screen that shows the results of previous attempts
+                        Navigator.pushNamed(context, resultsHistoryRoute);
                       },
                     ),
                   ),

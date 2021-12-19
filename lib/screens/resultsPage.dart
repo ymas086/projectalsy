@@ -11,10 +11,6 @@ class ResultsPage extends StatelessWidget {
   final QuizResult result;
   final DatabaseHelper db = DatabaseHelper.instance;
 
-//  final int numCorrect;
-//  final int totalQuestionCount;
-//  final TestType testType;
-
   Widget build(BuildContext context) {
     print("Number of Questions Correct: ${result.totalCorrect}");
     print("Total Question Count: ${result.totalQuestionCount}");
