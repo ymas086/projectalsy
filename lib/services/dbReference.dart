@@ -1,12 +1,11 @@
-//TODO these first 2 will likely need to be somewhat dynamic and read from Sharedpreference instead.
 
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cbap_prep_app/models/questionBank.dart';
 
-//SharedPreferences sharedPref = SharedPreferences.getInstance();
-String questionBank = "CBAP";
-String databaseName = "cbap4.sqlite";
-int numQuestionsInBank = 500;
-List<String> questionBanksList = ["CBAP", "CISA"];
+final List<QuestionBank> questionBanksList2 = [
+  QuestionBank("CBAP 1", "cbap2.sqlite", 150),
+  QuestionBank("CISA", "db2.sqlite", 1150),
+  QuestionBank("CBAP 2", "cbap4.sqlite", 500),
+];
 
 //CREATE TABLE "questions" ( "questionId" INTEGER, "questionText" TEXT, "explanation" TEXT, "questionNumber" INTEGER, "optionIsAnswer" INTEGER, "option1" INTEGER, "option2" INTEGER, "option3" INTEGER, "option4" INTEGER )
 const questionsTable = "questions";
@@ -21,7 +20,6 @@ const String columnOption3 = "option3";
 const String columnOption4 = "option4";
 
 
-
 //﻿CREATE TABLE "options" ( "optionId" INTEGER, "questionId" INTEGER, "sequence" INTEGER, "optionLabel" TEXT, "optionText" TEXT, "isAnswer" TEXT )
 const optionsTable = "options";
 const String columnOptionId = "optionId";
@@ -32,7 +30,7 @@ const String columnIsAnswer = "isAnswer";
 
 //CREATE TABLE "images" ("imageId" INTEGER, "questionId" INTEGER, "sequence" INTEGER, "imageTitle" TEXT, "imageRaw" TEXT)
 const imagesTable = "images";
-const String columnImageId = "imageId";
+const String columnImageId = "imageID";
 const String columnImageTitle = "imageTitle";
 const String columnImageRaw = "imageRaw";
 

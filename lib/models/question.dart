@@ -43,6 +43,6 @@ class Question {
     optionId3 = map[columnOption3];
     optionId4 = map[columnOption4];
     options = List<Option>.empty(growable: true);
-//    images = List<Image>.empty(growable: true);
+    images = List<Image>.empty(growable: true);
   }
 }

@@ -24,7 +24,7 @@ class MyRouter {
       case resultsRoute:
         return MaterialPageRoute(
             builder: (_) =>
-                ResultsPage(numCorrect: data[0], totalQuestionCount: data[1], testType: data[2]));
+                ResultsPage(result: data[0]));
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

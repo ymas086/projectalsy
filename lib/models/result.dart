@@ -1,9 +1,7 @@
 import 'package:cbap_prep_app/services/dbReference.dart';
 
-class Result {
+class QuizResult {
 
-
-  //TODO confirm the data structure is appropriate before any further implementation work
   int id;
 
   DateTime startDateTime;
@@ -16,10 +14,10 @@ class Result {
 
   Map<String, dynamic> toMap() {
     var map = <String, dynamic>{
-      columnResultId: id,
-      //no support for native datetime in sqlite, need to convert from int
-      columnStartDate: startDateTime.microsecondsSinceEpoch,
-      columnEndDate: endDateTime.microsecondsSinceEpoch,
+//      columnResultId: id,
+      //no support for native datetime in sqlite, need to convert to int
+      columnStartDate: startDateTime.millisecondsSinceEpoch,
+      columnEndDate: endDateTime.millisecondsSinceEpoch,
       columnTestType: testType,
       columnQuestionRange: questionRange,
       columnTotalQuestionCount: totalQuestionCount,
@@ -28,9 +26,9 @@ class Result {
     return map;
   }
 
-  Result();
+  QuizResult();
 
-  Result.fromMap(Map<String, dynamic> map) {
+  QuizResult.fromMap(Map<String, dynamic> map) {
     id = map[columnResultId];
     //no support for native datetime in sqlite, need to convert from int
     startDateTime = DateTime.fromMicrosecondsSinceEpoch(map[columnStartDate]);

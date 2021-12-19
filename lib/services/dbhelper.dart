@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:math';
 
+import 'package:cbap_prep_app/models/image.dart';
+import 'package:cbap_prep_app/models/questionBank.dart';
 import 'package:cbap_prep_app/models/result.dart';
 import 'package:path/path.dart';
 import 'package:cbap_prep_app/models/option.dart';
@@ -19,28 +21,43 @@ class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._privateConstructor();
 
   // only have a single app-wide reference to the databases
-  //TODO refactor this class to factor in writes to questionDB to store results.
 
   static Database _questionDatabase;
-  static Database _controlDatabase;
-  static SharedPreferences sharedPref;
+  static SharedPreferences _sharedPref;
+
+  String questionBank;
+  String databaseName;
+  int numQuestionsInBank;
 
   Future<Database> get questionDatabase async {
-    //TODO setup the sharedPreferences here...for the first time
-//    sharedPref = await SharedPreferences.getInstance();
-//
-//    if (sharedPref.getKeys().isEmpty) {
-//      //no keys exist, so save CBAP question bank as default
-//      sharedPref.setString("question_bank", "CBAP");
-//      sharedPref.setString("database_name", "cbap2.sqlite");
-//      sharedPref.setInt("question_count", 150);
-//      sharedPref.setStringList("question_bank_list", questionBanksList);
-//    }
-
     if (_questionDatabase != null) return _questionDatabase;
     // lazily instantiate the db the first time it is accessed
     _questionDatabase = await _initDatabase();
     return _questionDatabase;
+  }
+
+  Future<SharedPreferences> get sharedPref async {
+    _sharedPref = await SharedPreferences.getInstance();
+
+//    sharedPref.clear();
+//    if (sharedPref.getKeys().isEmpty) {
+    if (_sharedPref.containsKey("question_bank") == false) {
+      //no keys exist, so save CBAP question bank as default
+      _sharedPref.setString("question_bank", "CBAP 2");
+      _sharedPref.setString("database_name", "cbap4.sqlite");
+      _sharedPref.setInt("question_count", 500);
+      _sharedPref.setStringList("question_bank_list",
+          questionBanksList2.map((index) => index.identifier).toList());
+
+      print(
+          "List of Questions in Shared Pref: ${_sharedPref.getStringList("question_bank_list")}");
+    } else {
+      questionBank = _sharedPref.getString("question_bank");
+      databaseName = _sharedPref.getString("database_name");
+      numQuestionsInBank = _sharedPref.getInt("question_count");
+    }
+
+    return _sharedPref;
   }
 
   // this opens the database (and creates it if it doesn't exist)
@@ -98,6 +115,8 @@ class DatabaseHelper {
     if (maps.length > 0) {
       q = Question.fromMap(maps[0]);
       //q.options = new List<Option>();
+
+      //Populate options array
       List<Map> mapsOptions = await db.query(
         optionsTable,
         columns: [
@@ -116,6 +135,27 @@ class DatabaseHelper {
       if (mapsOptions.length > 0) {
         for (Map m in mapsOptions) {
           q.options.add(Option.fromMap(m));
+        }
+      }
+
+      //Populate images array
+      List<Map> mapsImages = await db.query(
+        imagesTable,
+        columns: [
+          columnImageId,
+          columnQuestionId,
+          columnSequence,
+          columnImageTitle,
+          columnImageRaw
+        ],
+        where: "$columnQuestionId = ?",
+        whereArgs: [q.id],
+        limit: 4,
+      );
+
+      if (mapsImages.length > 0) {
+        for (Map m in mapsImages) {
+          q.images.add(Image.fromMap(m));
         }
       }
     }
@@ -151,6 +191,19 @@ class DatabaseHelper {
     if (optionMaps.length > 0) {
       for (int i = 0; i < optionMaps.length; i++) {
         results[i ~/ 4].options.add(Option.fromMap(optionMaps[i]));
+      }
+    }
+
+    List<Map> imageMaps = await db
+        .rawQuery("select * from $imagesTable where $columnQuestionId in "
+            "${mergeQueryIdsInt(questionIds)} order by $columnQuestionId asc");
+    print("images query concluded");
+
+    if (imageMaps.length > 0) {
+      for (int i = 0; i < imageMaps.length; i++) {
+        results[questionIds.indexOf(imageMaps[i][columnQuestionId])]
+            .images
+            .add(Image.fromMap(imageMaps[i]));
       }
     }
 
@@ -192,40 +245,56 @@ class DatabaseHelper {
       }
     }
 
+    List<Map> imageMaps = await db
+        .rawQuery("select * from $imagesTable where $columnQuestionId in "
+            "${mergeQueryIdsInt(questionIds)} order by $columnQuestionId asc");
+    print("images query concluded");
+
+    if (imageMaps.length > 0) {
+      for (int i = 0; i < imageMaps.length; i++) {
+        results[questionIds.indexOf(imageMaps[i][columnQuestionId])]
+            .images
+            .add(Image.fromMap(imageMaps[i]));
+      }
+    }
+
     print("Results length:" + results.length.toString());
     return results;
   }
 
-  void saveTestResult(Result result) async {
+  void saveTestResult(QuizResult result) async {
     Database db = await instance.questionDatabase;
-    //TODO insert create if not exists query for the results table
-    await db.rawQuery("create table if not exists results "
-        "(columnResultId int, columnStartDate int, columnEndDate int, columnTestType text,"
-        "columnQuestionRange text, columnTotalQuestionCount, int, columnTotalCorrect int)");
-//    const String columnResultId = "resultId";
-//    const String columnStartDate = "startDate";
-//    const String columnEndDate = "endDate";
-//    const String columnTestType = "testType";
-//    const String columnQuestionRange = "questionRange";
-//    const String columnTotalQuestionCount = "totalQuestionCount";
-//    const String columnTotalCorrect = "totalCorrect";
-    //TODO write the results
-
-//    List<Map> maps = await db
-//        .rawQuery("select * from $questionsTable where $columnQuestionId in "
-//        "${mergeQueryIdsInt(questionIds)} order by $columnQuestionId asc");
+    await db.rawQuery("create table if not exists $resultsTable "
+        "($columnResultId INTEGER PRIMARY KEY, $columnStartDate INTEGER, $columnEndDate INTEGER, $columnTestType TEXT,"
+        "$columnQuestionRange TEXT, $columnTotalQuestionCount INTEGER, $columnTotalCorrect INTEGER)");
 
     //create the result set with questions
+    await db.insert(resultsTable, result.toMap());
+
+    viewTestResult();
   }
 
-  void writeDatabasePreferences(String questionBank) {
-    switch (questionBank) {
-      case "CBAP":
-      //do something
-      case "CISA":
-      //do something else
-      default:
-    }
+  void viewTestResult() async {
+    //TODO tailor this to be usable in results history screen
+    Database db = await instance.questionDatabase;
+
+    List<Map> maps = await db.rawQuery("select * from $resultsTable "
+        "order by $columnResultId asc");
+
+    print("number of results: ${maps.length}");
+  }
+
+  void updateSelectedQuestionBank(QuestionBank bank) async {
+    print("update question bank called");
+    _sharedPref.setString("question_bank", bank.identifier);
+    _sharedPref.setString("database_name", bank.dbName);
+    _sharedPref.setInt("question_count", bank.numQuestions);
+
+    questionBank = bank.identifier;
+    databaseName = bank.dbName;
+    numQuestionsInBank = bank.numQuestions;
+
+    await _initDatabase();
   }
 
   //for generating an array of random numbers capped at the number of questions in the question bank

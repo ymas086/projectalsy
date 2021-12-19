@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:async/async.dart';
+import 'package:cbap_prep_app/models/result.dart';
 import 'package:cbap_prep_app/services/dbReference.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_rounded_progress_bar/flutter_rounded_progress_bar.dart';
@@ -28,8 +29,6 @@ class QuestionPage extends StatefulWidget {
 }
 
 class _QuestionPageState extends State<QuestionPage> {
-  //TODO need to pass start and end timestamp to results page
-  //TODO consider just passing the Results object to the results page. Might be cleaner.
   static final DatabaseHelper db = DatabaseHelper.instance;
   Future<List<Question>> questionQuery;
   AsyncMemoizer questionQueryMemoizer;
@@ -37,7 +36,9 @@ class _QuestionPageState extends State<QuestionPage> {
   OptionState questionAnswerState;
   int currentQuestionIndex;
   int selectedOptionIndex;
-  int numCorrect;
+
+  QuizResult currentSessionResult;
+
   int startTime = DateTime.now().microsecondsSinceEpoch;
 
   //called when state is being created
@@ -52,6 +53,8 @@ class _QuestionPageState extends State<QuestionPage> {
         db.queryRandomQuestions(widget.numQuestions).then((data) {
           setState(() {
             this.questions = data;
+            currentSessionResult.totalQuestionCount = questions.length;
+            currentSessionResult.questionRange = questions.toString();
           });
         });
       });
@@ -63,6 +66,10 @@ class _QuestionPageState extends State<QuestionPage> {
             .then((data) {
           setState(() {
             this.questions = data;
+            currentSessionResult.totalQuestionCount = questions.length;
+
+            //TODO this doesn't do what I expected. Need to call a function to return a neater array list.
+            currentSessionResult.questionRange = questions.toString();
           });
         });
       });
@@ -70,7 +77,11 @@ class _QuestionPageState extends State<QuestionPage> {
     questionAnswerState = OptionState.FRESH;
     currentQuestionIndex = 0;
     selectedOptionIndex = 0;
-    numCorrect = 0;
+
+    currentSessionResult = new QuizResult();
+    currentSessionResult.totalCorrect = 0;
+    currentSessionResult.startDateTime = DateTime.now();
+    currentSessionResult.testType = widget.testType.toString();
   }
 
   void updateSelectedOption(int selectedOptionIndex) {
@@ -93,7 +104,8 @@ class _QuestionPageState extends State<QuestionPage> {
               .toLowerCase() ==
           "true") {
         questionAnswerState = OptionState.CORRECT;
-        numCorrect++;
+        currentSessionResult.totalCorrect++;
+//        numCorrect++;
       } else {
         questionAnswerState = OptionState.WRONG;
       }
@@ -107,8 +119,9 @@ class _QuestionPageState extends State<QuestionPage> {
         currentQuestionIndex++;
         questionAnswerState = OptionState.FRESH;
       } else {
+        currentSessionResult.endDateTime = DateTime.now();
         Navigator.pushNamed(context, '/results',
-            arguments: [numCorrect, questions.length, widget.testType]);
+            arguments: [currentSessionResult]);
         setState(() {
           questionAnswerState = OptionState.FINISHED;
         });
@@ -125,18 +138,17 @@ class _QuestionPageState extends State<QuestionPage> {
       //we are at the end of the current question list, move to next screen
 
       //confirm that the test is concluded
+      currentSessionResult.endDateTime = DateTime.now();
+
       Navigator.pushNamed(context, '/results',
-          arguments: [numCorrect, questions.length, widget.testType]);
+          arguments: [currentSessionResult]);
     } else {
       //we are still within the test, determine action based on current state
+
       if (questionAnswerState == OptionState.FRESH) {
         //nothing selected, return an error
         ScaffoldMessenger.of(context)
             .showSnackBar(SnackBar(content: Text("Please select an answer")));
-
-//        Scaffold.of(context).showSnackBar(SnackBar(
-//          content: Text("Please select an answer"),
-//        ));
       } else if (questionAnswerState == OptionState.SELECTED) {
         //something has been selected. determine if correct or wrong
         updateAnswerState();
@@ -150,13 +162,6 @@ class _QuestionPageState extends State<QuestionPage> {
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.title),
@@ -190,6 +195,8 @@ class _QuestionPageState extends State<QuestionPage> {
                     ),
                     height: 30,
                   ),
+//                  Expanded(
+//                    child:
                   QuestionView(
                     question: questions[currentQuestionIndex],
                     state: questionAnswerState,
@@ -199,6 +206,7 @@ class _QuestionPageState extends State<QuestionPage> {
                       updateSelectedOption(index);
                     },
                   ),
+//                  ),
                 ],
               );
             } else {

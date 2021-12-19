@@ -1,6 +1,8 @@
 //import 'dart:html';
 import 'dart:ui';
 
+import 'package:cbap_prep_app/models/questionBank.dart';
+import 'package:cbap_prep_app/services/dbhelper.dart';
 import 'package:custom_clippers/Clippers/sin_cosine_wave_clipper.dart';
 import 'package:custom_clippers/enum/enums.dart';
 import 'package:flutter/cupertino.dart';
@@ -13,19 +15,33 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:numberpicker/numberpicker.dart';
 
-class MyHomePage extends StatelessWidget {
+class MyHomePage extends StatefulWidget {
   MyHomePage({Key key, this.title}) : super(key: key);
 
   final String title;
 
   @override
+  State<MyHomePage> createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  static final DatabaseHelper db = DatabaseHelper.instance;
+
+  int questionCount = 1;
+  int startIndex = 1;
+
+  String selectedDb = "CBAP";
+
+  @override
+  void initState() {
+    super.initState();
+
+    //main task is to initiate the SharedPreferences data
+    db.sharedPref;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    int questionCount = 1;
-    int startIndex = 1;
-
-    //TODO pull from SharedPreferences
-    String selectedDb = "CBAP";
-
     OutlinedButton quickStartButton = new OutlinedButton(
       child: Text(
         'Quick Start',
@@ -58,7 +74,7 @@ class MyHomePage extends StatelessWidget {
                   NumberPicker(
                     axis: Axis.horizontal,
                     minValue: 1,
-                    maxValue: numQuestionsInBank,
+                    maxValue: db.numQuestionsInBank,
                     value: questionCount,
                     onChanged: (value) {
                       setState(() => questionCount = value);
@@ -122,11 +138,10 @@ class MyHomePage extends StatelessWidget {
                   NumberPicker(
                     minValue: 1,
                     axis: Axis.horizontal,
-                    maxValue: numQuestionsInBank,
+                    maxValue: db.numQuestionsInBank,
                     value: startIndex,
                     onChanged: (value) {
                       setState(() => startIndex = value);
-                      print("startIndex: $startIndex");
                     },
                   ),
                   SizedBox(height: 50),
@@ -137,11 +152,10 @@ class MyHomePage extends StatelessWidget {
                   NumberPicker(
                     axis: Axis.horizontal,
                     minValue: 1,
-                    maxValue: numQuestionsInBank - startIndex + 1,
+                    maxValue: db.numQuestionsInBank - startIndex + 1,
                     value: questionCount,
                     onChanged: (value) {
                       setState(() => questionCount = value);
-                      print("questionCount: $questionCount");
                     },
                   ),
                 ],
@@ -161,8 +175,10 @@ class MyHomePage extends StatelessWidget {
                   'Question Page',
                   startIndex,
                   questionCount,
-                  TestType.Random
+                  TestType.Custom
                 ]);
+//                Navigator.pushNamed(context, questionsRoute,
+//                    arguments: ['Question Page', 402, 3, TestType.Custom]);
               },
               child: const Text('Start'),
             ),
@@ -188,19 +204,21 @@ class MyHomePage extends StatelessWidget {
                     style: Theme.of(context).textTheme.caption,
                     textAlign: TextAlign.left,
                   ),
+                  //TODO this dropdownbutton appears too finicky. Consider alternatives
                   DropdownButton(
-                    items: [
-                      DropdownMenuItem<String>(
-                          child: Text('CBAP'), value: 'CBAP'),
-                      DropdownMenuItem<String>(
-                          child: Text('CISA'), value: 'CISA'),
-                    ],
                     value: selectedDb,
+                    items: questionBanksList2
+                        .map<DropdownMenuItem<String>>((index) {
+                      print(index.dbName);
+                      return DropdownMenuItem<String>(
+                        child: Text(index.identifier),
+                        value: index.dbName,
+                      );
+                    }).toList(),
                     onChanged: (value) {
                       setState(() {
                         selectedDb = value;
                       });
-                      print(selectedDb);
                     },
                   ),
                 ],
@@ -210,10 +228,13 @@ class MyHomePage extends StatelessWidget {
           actions: <Widget>[
             TextButton(
               onPressed: () async {
-                //TODO write to SharedPreferences then pop
                 Navigator.pop(context, 'OK');
+
+                QuestionBank selectedBank = questionBanksList2
+                    .firstWhere((element) => element.dbName == selectedDb);
+                db.updateSelectedQuestionBank(selectedBank);
               },
-              child: const Text('Close'),
+              child: const Text('Save & Close'),
             ),
           ],
         ),
@@ -292,12 +313,35 @@ class MyHomePage extends StatelessWidget {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(20.0),
+                padding:
+                    const EdgeInsets.only(left: 20.0, right: 20.0, top: 20.0),
                 child: Container(
                   child: SizedBox(
                     width: double.infinity,
                     height: 50,
                     child: customStartButton,
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Container(
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: OutlinedButton(
+                      child: Text(
+                        'View Past Results',
+                        style: TextStyle(color: Theme.of(context).primaryColor),
+                      ),
+                      style: ButtonStyle(
+                          backgroundColor:
+                              MaterialStateProperty.all(Colors.white),
+                          elevation: MaterialStateProperty.all(1)),
+                      onPressed: () {
+                        //TODO launch a new screen that shows the results of previous attempts
+                      },
+                    ),
                   ),
                 ),
               ),

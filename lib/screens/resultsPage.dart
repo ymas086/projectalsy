@@ -1,20 +1,26 @@
+import 'package:cbap_prep_app/models/result.dart';
 import 'package:cbap_prep_app/services/dbReference.dart';
+import 'package:cbap_prep_app/services/dbhelper.dart';
 import 'package:flutter/material.dart';
 import 'package:liquid_progress_indicator/liquid_progress_indicator.dart';
 import 'package:cbap_prep_app/routes.dart';
 
 class ResultsPage extends StatelessWidget {
-  ResultsPage(
-      {Key key, this.numCorrect, this.totalQuestionCount, this.testType});
+  ResultsPage({Key key, this.result});
 
-  final int numCorrect;
-  final int totalQuestionCount;
-  final TestType testType;
+  final QuizResult result;
+  final DatabaseHelper db = DatabaseHelper.instance;
+
+//  final int numCorrect;
+//  final int totalQuestionCount;
+//  final TestType testType;
 
   Widget build(BuildContext context) {
-    print("Number of Questions Correct: $numCorrect");
-    print("Total Question Count: $totalQuestionCount");
-    print("${(numCorrect * 100 ~/ totalQuestionCount)}%");
+    print("Number of Questions Correct: ${result.totalCorrect}");
+    print("Total Question Count: ${result.totalQuestionCount}");
+    print("${(result.totalCorrect * 100 ~/ result.totalQuestionCount)}%");
+
+    db.saveTestResult(this.result);
 
     return Scaffold(
       appBar: AppBar(
@@ -28,13 +34,11 @@ class ResultsPage extends StatelessWidget {
               height: 250,
               width: 250,
               child: LiquidCircularProgressIndicator(
-                value: (numCorrect / totalQuestionCount),
+                value: (result.totalCorrect / result.totalQuestionCount),
                 valueColor:
-                AlwaysStoppedAnimation(Theme
-                    .of(context)
-                    .primaryColor),
+                    AlwaysStoppedAnimation(Theme.of(context).primaryColor),
                 center: Text(
-                  "${(numCorrect * 100 ~/ totalQuestionCount)}%",
+                  "${(result.totalCorrect * 100 ~/ result.totalQuestionCount)}%",
                   style: TextStyle(
                     fontSize: 30,
                     color: Colors.grey[100],
@@ -49,84 +53,57 @@ class ResultsPage extends StatelessWidget {
               children: [
                 Text(
                   "Test Type",
-                  style: Theme
-                      .of(context)
-                      .textTheme
-                      .caption,
+                  style: Theme.of(context).textTheme.caption,
                 ),
                 Text(
-                  testType == TestType.Random
+                  result.testType == TestType.Random.toString()
                       ? "Quick Start Test"
                       : "Custom Test",
                   style: TextStyle(
-                      color: Theme
-                          .of(context)
-                          .colorScheme
-                          .primary,
+                      color: Theme.of(context).colorScheme.primary,
                       fontSize: 20),
                 ),
                 Divider(
-                  color: Theme
-                      .of(context)
-                      .colorScheme
-                      .primary,
+                  color: Theme.of(context).colorScheme.primary,
                   height: 30,
                   thickness: 2,
                 ),
                 IntrinsicHeight(
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment
-                        .spaceAround,
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
                     crossAxisAlignment: CrossAxisAlignment.center,
-
                     children: [
                       Column(
                         children: [
                           Text(
                             "Total Attempted:",
-                            style: Theme
-                                .of(context)
-                                .textTheme
-                                .caption,
+                            style: Theme.of(context).textTheme.caption,
                           ),
                           Text(
-                            "$totalQuestionCount",
+                            "${result.totalQuestionCount}",
                             style: TextStyle(
-                                color: Theme
-                                    .of(context)
-                                    .colorScheme
-                                    .primary,
+                                color: Theme.of(context).colorScheme.primary,
                                 fontSize: 20),
                           ),
                         ],
                       ),
                       VerticalDivider(
-                        color: Theme
-                            .of(context)
-                            .colorScheme
-                            .primary,
+                        color: Theme.of(context).colorScheme.primary,
                       ),
                       Column(
                         children: [
                           Text(
                             "Total Correct:",
-                            style: Theme
-                                .of(context)
-                                .textTheme
-                                .caption,
+                            style: Theme.of(context).textTheme.caption,
                           ),
                           Text(
-                            "$numCorrect",
+                            "${result.totalCorrect}",
                             style: TextStyle(
-                                color: Theme
-                                    .of(context)
-                                    .colorScheme
-                                    .primary,
+                                color: Theme.of(context).colorScheme.primary,
                                 fontSize: 20),
                           ),
                         ],
                       ),
-
                     ],
                   ),
                 ),
