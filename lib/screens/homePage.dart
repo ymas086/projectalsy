@@ -209,7 +209,6 @@ class _MyHomePageState extends State<MyHomePage> {
                     style: Theme.of(context).textTheme.caption,
                     textAlign: TextAlign.left,
                   ),
-                  //TODO selectedDb always appears blank. Consider investigating why
                   DropdownButton(
                     value: selectedDb,
                     items: questionBanksList2
@@ -343,7 +342,6 @@ class _MyHomePageState extends State<MyHomePage> {
                               MaterialStateProperty.all(Colors.white),
                           elevation: MaterialStateProperty.all(1)),
                       onPressed: () {
-                        //TODO launch a new screen that shows the results of previous attempts
                         Navigator.pushNamed(context, resultsHistoryRoute);
                       },
                     ),

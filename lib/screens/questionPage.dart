@@ -52,7 +52,9 @@ class _QuestionPageState extends State<QuestionPage> {
           setState(() {
             this.questions = data;
             currentSessionResult.totalQuestionCount = questions.length;
-            currentSessionResult.questionRange = questions.toString();
+            currentSessionResult.questionRange =
+                questions.map((e) => e.id).join(",");
+            print("Question Range: ${currentSessionResult.questionRange}");
           });
         });
       });
@@ -66,8 +68,9 @@ class _QuestionPageState extends State<QuestionPage> {
             this.questions = data;
             currentSessionResult.totalQuestionCount = questions.length;
 
-            //TODO this doesn't do what I expected. Need to call a function to return a neater array list.
-            currentSessionResult.questionRange = questions.toString();
+            currentSessionResult.questionRange =
+                questions.map((e) => e.id).join(",");
+            print("Question Range: ${currentSessionResult.questionRange}");
           });
         });
       });

@@ -287,7 +287,6 @@ class DatabaseHelper {
   }
 
   Future<List<QuizResult>> viewTestResult() async {
-    //TODO tailor this to be usable in results history screen
     Database db = await instance.questionDatabase;
     List<QuizResult> results = List<QuizResult>.empty(growable: true);
 
